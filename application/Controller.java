@@ -17,6 +17,8 @@ import org.opencv.imgproc.Imgproc;
 import org.opencv.videoio.VideoCapture;
 import org.opencv.videoio.Videoio;
 
+import javafx.beans.InvalidationListener;
+import javafx.beans.Observable;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Slider;
@@ -110,7 +112,17 @@ public class Controller {
 		    		}
 		    	}
 			};
-				
+			
+			slider.valueProperty().addListener(new InvalidationListener() {
+			    public void invalidated(Observable ov) {
+			       if (slider.isValueChanging()) {
+			    	   System.out.println((int) (slider.getValue() / 100 * capture.get(Videoio.CAP_PROP_FRAME_COUNT)));
+			    	   capture.set(Videoio.CAP_PROP_POS_FRAMES, (int) (slider.getValue() / 100 * capture.get(Videoio.CAP_PROP_FRAME_COUNT)));
+			    	   timer.schedule(frameGrabber, 0, TimeUnit.MILLISECONDS);
+			       }
+			    }
+			});
+			
 			// terminate the timer if it is running 
 			if (timer != null && !timer.isShutdown()) {
 				timer.shutdown();
@@ -122,7 +134,6 @@ public class Controller {
 			timer.scheduleAtFixedRate(frameGrabber, 0, Math.round(1000/framePerSecond), TimeUnit.MILLISECONDS);
 		  }
 	}
-
 	
 	@FXML
 	protected void openImage(ActionEvent event) throws InterruptedException {
@@ -145,18 +156,18 @@ public class Controller {
 		Mat frame = new Mat();
 		if (capture.read(frame)) {
 			// convert the image from RGB to grayscale
-			Mat grayImage = new Mat();
-			Imgproc.cvtColor(frame, grayImage, Imgproc.COLOR_BGR2GRAY);
+			Mat grayFrame = new Mat();
+			Imgproc.cvtColor(frame, grayFrame, Imgproc.COLOR_BGR2GRAY);
 			
-			// resize the image
-			Mat resizedImage = new Mat();
-			Imgproc.resize(grayImage, resizedImage, new Size(width, height));
+			// resize the frame
+			Mat resizedFrame = new Mat();
+			Imgproc.resize(grayFrame, resizedFrame, new Size(width, height));
 			
 			// quantization
-			double[][] roundedImage = new double[resizedImage.rows()][resizedImage.cols()];
-			for (int row = 0; row < resizedImage.rows(); row++) {
-				for (int col = 0; col < resizedImage.cols(); col++) {
-					roundedImage[row][col] = (double)Math.floor(resizedImage.get(row, col)[0]/numberOfQuantizionLevels) / numberOfQuantizionLevels;
+			double[][] roundedImage = new double[resizedFrame.rows()][resizedFrame.cols()];
+			for (int row = 0; row < resizedFrame.rows(); row++) {
+				for (int col = 0; col < resizedFrame.cols(); col++) {
+					roundedImage[row][col] = (double)Math.floor(resizedFrame.get(row, col)[0]/numberOfQuantizionLevels) / numberOfQuantizionLevels;
 				}
 			}
 			

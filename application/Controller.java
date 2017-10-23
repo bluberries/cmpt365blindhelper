@@ -50,7 +50,6 @@ public class Controller {
 	
 	@FXML
 	private Slider volumeSlider;
-	private int volume;
 	
 	private VideoCapture capture;
 	private ScheduledExecutorService timer;
@@ -130,14 +129,6 @@ public class Controller {
 			    }
 			});
 			
-			volumeSlider.valueProperty().addListener(new InvalidationListener() {
-			    public void invalidated(Observable ov) {
-			       if (volumeSlider.isValueChanging()) {
-			    	   volume = (int) volumeSlider.getValue();		// changes the global variable volume
-			       }
-			    }
-			});
-			
 			// terminate the timer if it is running 
 			if (timer != null && !timer.isShutdown()) {
 				timer.shutdown();
@@ -204,7 +195,7 @@ public class Controller {
             sourceDataLine.start();
             
             FloatControl gainControl=(FloatControl) sourceDataLine.getControl(FloatControl.Type.MASTER_GAIN);
-	    	gainControl.setValue((float)(Math.log( volume / 100d) / Math.log(10.0) * 20.0));	// volume is always checked before audio plays
+	    	gainControl.setValue((float)(Math.log( (int) volumeSlider.getValue() / 100d) / Math.log(10.0) * 20.0));	// volume is always checked before audio plays
         	/* this piece of code to transform linear 0-100 values to decibels  was borrowed from http://www.javased.com/?api=javax.sound.sampled.SourceDataLine */
 	    	
             for (int col = 0; col < width; col++) {
@@ -255,7 +246,7 @@ public class Controller {
 			sourceDataLine.start();
 			
 			FloatControl gainControl=(FloatControl) sourceDataLine.getControl(FloatControl.Type.MASTER_GAIN);
-	    	gainControl.setValue((float)(Math.log( volume / 100d) / Math.log(10.0) * 20.0));
+	    	gainControl.setValue((float)(Math.log( (int) volumeSlider.getValue() / 100d) / Math.log(10.0) * 20.0));
 			            
 			for (int col = 0; col < width; col++) {
 				byte[] audioBuffer = new byte[numberOfSamplesPerColumn];

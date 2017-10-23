@@ -116,7 +116,6 @@ public class Controller {
 			slider.valueProperty().addListener(new InvalidationListener() {
 			    public void invalidated(Observable ov) {
 			       if (slider.isValueChanging()) {
-			    	   System.out.println((int) (slider.getValue() / 100 * capture.get(Videoio.CAP_PROP_FRAME_COUNT)));
 			    	   capture.set(Videoio.CAP_PROP_POS_FRAMES, (int) (slider.getValue() / 100 * capture.get(Videoio.CAP_PROP_FRAME_COUNT)));
 			    	   timer.schedule(frameGrabber, 0, TimeUnit.MILLISECONDS);
 			       }

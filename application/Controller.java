@@ -90,16 +90,24 @@ public class Controller {
 		    Runnable frameGrabber = new Runnable() {
 		    	@Override
 		    	public void run() {
-		    		Mat frame = new Mat();
-		    			if (capture.read(frame)) { // decode successfully
-		    				Image im = Utilities.mat2Image(frame);
-		    				Utilities.onFXThread(imageView.imageProperty(), im); 
-		    				double currentFrameNumber = capture.get(Videoio.CAP_PROP_POS_FRAMES);
-		    				double totalFrameCount = capture.get(Videoio.CAP_PROP_FRAME_COUNT);
-		    				slider.setValue(currentFrameNumber / totalFrameCount * (slider.getMax() - slider.getMin()));
-		    			} else { // reach the end of the video
-		    				capture.set(Videoio.CAP_PROP_POS_FRAMES, 0);
+		    		synchronized(capture) {
+		    			try {
+//		    				System.out.println("Inside run");
+				    		Mat frame = new Mat();
+			    			if (capture.read(frame)) { // decode successfully
+			    				Image im = Utilities.mat2Image(frame);
+			    				Utilities.onFXThread(imageView.imageProperty(), im); 
+			    				double currentFrameNumber = capture.get(Videoio.CAP_PROP_POS_FRAMES);
+			    				double totalFrameCount = capture.get(Videoio.CAP_PROP_FRAME_COUNT);
+			    				slider.setValue(currentFrameNumber / totalFrameCount * (slider.getMax() - slider.getMin()));
+			    			} else { // reach the end of the video
+			    				capture.set(Videoio.CAP_PROP_POS_FRAMES, 0);
+			    			}
+			    			capture.wait();
+		    			} catch (InterruptedException e) {
+		    				e.printStackTrace();
 		    			}
+		    		}
 		    	}
 			};
 				
@@ -134,10 +142,11 @@ public class Controller {
 	protected void playImage(ActionEvent event) throws LineUnavailableException {
 		// This method "plays" the image opened by the user
 		// You should modify the logic so that it plays a video rather than an image
-		if (image != null) {
+		Mat frame = new Mat();
+		if (capture.read(frame)) {
 			// convert the image from RGB to grayscale
 			Mat grayImage = new Mat();
-			Imgproc.cvtColor(image, grayImage, Imgproc.COLOR_BGR2GRAY);
+			Imgproc.cvtColor(frame, grayImage, Imgproc.COLOR_BGR2GRAY);
 			
 			// resize the image
 			Mat resizedImage = new Mat();
@@ -180,8 +189,12 @@ public class Controller {
             sourceDataLine.write(click, 0, 20);
             sourceDataLine.drain();
             sourceDataLine.close();
-		} else {
-			// What should you do here?
-		}
+            synchronized (capture) {
+            	capture.notify();
+            }
+		} 
+//		else {
+//			// What should you do here?
+//		}
 	} 
 }

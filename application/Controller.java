@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.FloatControl;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 
@@ -47,6 +48,10 @@ public class Controller {
 	@FXML
 	private Slider slider;
 	
+	@FXML
+	private Slider volumeSlider;
+	private int volume;
+	
 	private VideoCapture capture;
 	private ScheduledExecutorService timer;
 	
@@ -73,6 +78,8 @@ public class Controller {
 		for (int m = height/2-2; m >=0; m--) {
 			freq[m] = freq[m+1] * Math.pow(2, -1.0/12.0); 
 		}
+		
+		volumeSlider.setValue(volumeSlider.getMax());
 	}
 	
 	private String getImageFilename() {
@@ -123,6 +130,14 @@ public class Controller {
 			    }
 			});
 			
+			volumeSlider.valueProperty().addListener(new InvalidationListener() {
+			    public void invalidated(Observable ov) {
+			       if (volumeSlider.isValueChanging()) {
+			    	   volume = (int) volumeSlider.getValue();		// changes the global variable volume
+			       }
+			    }
+			});
+			
 			// terminate the timer if it is running 
 			if (timer != null && !timer.isShutdown()) {
 				timer.shutdown();
@@ -161,6 +176,7 @@ public class Controller {
 		// This method "plays" the image opened by the user
 		// You should modify the logic so that it plays a video rather than an image
 		Mat frame = new Mat();
+		
 		if (capture.read(frame)) {
             synchronized (capture) {
             	capture.notify();
@@ -187,6 +203,10 @@ public class Controller {
             sourceDataLine.open(audioFormat, sampleRate);
             sourceDataLine.start();
             
+            FloatControl gainControl=(FloatControl) sourceDataLine.getControl(FloatControl.Type.MASTER_GAIN);
+	    	gainControl.setValue((float)(Math.log( volume / 100d) / Math.log(10.0) * 20.0));	// volume is always checked before audio plays
+        	/* this piece of code to transform linear 0-100 values to decibels  was borrowed from http://www.javased.com/?api=javax.sound.sampled.SourceDataLine */
+	    	
             for (int col = 0; col < width; col++) {
             	byte[] audioBuffer = new byte[numberOfSamplesPerColumn];
             	for (int t = 1; t <= numberOfSamplesPerColumn; t++) {
@@ -233,6 +253,9 @@ public class Controller {
 			SourceDataLine sourceDataLine = AudioSystem.getSourceDataLine(audioFormat);
 			sourceDataLine.open(audioFormat, sampleRate);
 			sourceDataLine.start();
+			
+			FloatControl gainControl=(FloatControl) sourceDataLine.getControl(FloatControl.Type.MASTER_GAIN);
+	    	gainControl.setValue((float)(Math.log( volume / 100d) / Math.log(10.0) * 20.0));
 			            
 			for (int col = 0; col < width; col++) {
 				byte[] audioBuffer = new byte[numberOfSamplesPerColumn];

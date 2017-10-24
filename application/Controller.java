@@ -1,8 +1,6 @@
 package application;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -46,7 +44,7 @@ public class Controller {
 	private double[] freq; // frequencies for each particular row
 	private int numberOfQuantizionLevels;
 	private int numberOfSamplesPerColumn;
-	private boolean play = true;
+	private boolean play = false;
 	
 	@FXML
 	private Slider slider;
@@ -172,6 +170,9 @@ public class Controller {
 	protected void playImage(ActionEvent event) throws LineUnavailableException, InterruptedException {
 		// This method "plays" the image opened by the user
 		// You should modify the logic so that it plays a video rather than an image
+		if(play == true) {
+			return;
+		}
 		play = true;
 		Mat frame = new Mat();
 		Runnable audioGrabber = new Runnable() {

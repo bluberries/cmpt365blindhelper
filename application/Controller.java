@@ -58,8 +58,9 @@ public class Controller {
 	private void initialize() {
 		// Optional: You should modify the logic so that the user can change these values
 		// You may also do some experiments with different values
-		width = 64;
-		height = 64;
+		
+		width = 16;
+		height = 16;
 		sampleRate = 8000;
 		sampleSizeInBits = 8;
 		numberOfChannels = 1;

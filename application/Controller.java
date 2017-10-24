@@ -1,6 +1,8 @@
 package application;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -44,6 +46,7 @@ public class Controller {
 	private double[] freq; // frequencies for each particular row
 	private int numberOfQuantizionLevels;
 	private int numberOfSamplesPerColumn;
+	private boolean play = true;
 	
 	@FXML
 	private Slider slider;
@@ -60,8 +63,8 @@ public class Controller {
 		// Optional: You should modify the logic so that the user can change these values
 		// You may also do some experiments with different values
 		
-		width = 2;
-		height = 2;
+		width = 64;
+		height = 64;
 		sampleRate = 8000;
 		sampleSizeInBits = 8;
 		numberOfChannels = 1;
@@ -81,6 +84,7 @@ public class Controller {
 		}
 		
 		volumeSlider.setValue(volumeSlider.getMax());
+		
 	}
 	
 	private String getImageFilename() {
@@ -106,7 +110,7 @@ public class Controller {
 		    			try {
 //		    				System.out.println("Inside run");
 				    		Mat frame = new Mat();
-			    			if (capture.read(frame)) { // decode successfully
+			    			if (capture.read(frame) && play == true) { // decode successfully
 			    				Image im = Utilities.mat2Image(frame);
 			    				Utilities.onFXThread(imageView.imageProperty(), im); 
 			    				double currentFrameNumber = capture.get(Videoio.CAP_PROP_POS_FRAMES);
@@ -168,11 +172,12 @@ public class Controller {
 	protected void playImage(ActionEvent event) throws LineUnavailableException, InterruptedException {
 		// This method "plays" the image opened by the user
 		// You should modify the logic so that it plays a video rather than an image
+		play = true;
 		Mat frame = new Mat();
 		Runnable audioGrabber = new Runnable() {
 			@Override
 			public void run() {
-				while (capture.read(frame)) {
+				while (capture.read(frame) && play == true) {
 		            synchronized (capture) {
 		            	capture.notify();
 		            }
@@ -298,24 +303,6 @@ public class Controller {
 	
 	@FXML
 	protected void stopImage(ActionEvent event) {
-		try {
-			if (timer != null && !timer.isShutdown()) {
-				timer.shutdownNow();
-				timer.awaitTermination(0, TimeUnit.NANOSECONDS);
-			}
-		}
-		catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		
-		try {
-			if (audioTimer != null && !audioTimer.isShutdown()) {
-				audioTimer.shutdownNow();
-				audioTimer.awaitTermination(0, TimeUnit.NANOSECONDS);
-			}
-		}
-		catch (InterruptedException e) {
-			e.printStackTrace();
-		}
+		play = false;
 	}
 }

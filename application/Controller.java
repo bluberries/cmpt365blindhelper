@@ -60,8 +60,8 @@ public class Controller {
 		// Optional: You should modify the logic so that the user can change these values
 		// You may also do some experiments with different values
 		
-		width = 16;
-		height = 16;
+		width = 2;
+		height = 2;
 		sampleRate = 8000;
 		sampleSizeInBits = 8;
 		numberOfChannels = 1;
@@ -165,7 +165,7 @@ public class Controller {
 	}
 
 	@FXML
-	protected void playImage(ActionEvent event) throws LineUnavailableException {
+	protected void playImage(ActionEvent event) throws LineUnavailableException, InterruptedException {
 		// This method "plays" the image opened by the user
 		// You should modify the logic so that it plays a video rather than an image
 		Mat frame = new Mat();
@@ -286,7 +286,36 @@ public class Controller {
 					}
 			}
 		};
+		
+		// terminate the timer if it is running 
+		if (audioTimer != null && !audioTimer.isShutdown()) {
+			audioTimer.shutdown();
+			audioTimer.awaitTermination(Math.round(1000/capture.get(Videoio.CAP_PROP_FPS)), TimeUnit.MILLISECONDS);
+		}
 		audioTimer = Executors.newSingleThreadScheduledExecutor();
 		audioTimer.execute(audioGrabber);
-	} 
+	}
+	
+	@FXML
+	protected void stopImage(ActionEvent event) {
+		try {
+			if (timer != null && !timer.isShutdown()) {
+				timer.shutdownNow();
+				timer.awaitTermination(0, TimeUnit.NANOSECONDS);
+			}
+		}
+		catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		
+		try {
+			if (audioTimer != null && !audioTimer.isShutdown()) {
+				audioTimer.shutdownNow();
+				audioTimer.awaitTermination(0, TimeUnit.NANOSECONDS);
+			}
+		}
+		catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
 }

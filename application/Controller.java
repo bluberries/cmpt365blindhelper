@@ -28,6 +28,7 @@ import javafx.scene.image.ImageView;
 import javafx.stage.FileChooser;
 import utilities.Utilities;
 
+import java.util.concurrent.TimeUnit;
 public class Controller {
 	
 	
@@ -75,17 +76,6 @@ public class Controller {
 		numberOfSamplesPerColumn = 20;
 		
 		
-		// assign frequencies for each particular row
-		freq = new double[height]; // Be sure you understand why it is height rather than width
-		freq[height/2-1] = 440.0; // 440KHz - Sound of A (La)
-		for (int m = height/2; m < height; m++) {
-			freq[m] = freq[m-1] * Math.pow(2, 1.0/12.0); 
-		}
-		for (int m = height/2-2; m >=0; m--) {
-			freq[m] = freq[m+1] * Math.pow(2, -1.0/12.0); 
-		}
-		
-		volumeSlider.setValue(volumeSlider.getMax());
 		
 	}
 	
@@ -106,52 +96,23 @@ public class Controller {
 		    // create a runnable to fetch new frames periodically
 		    Runnable frameGrabber = new Runnable() {
 		    	@Override
-		    	public void run() {
-		    		synchronized(capture) {
-		    			try {
-//		    				System.out.println("Inside run");
-				    		Mat frame = new Mat();
-//							capture.read(STI);
-			    			if (capture.read(frame) && play == true) { // decode successfully
-//								System.out.println(frame.cols());
-//								Mat middleCol = frame.col(frame.cols()/2);
-//								STI.col(i).copyTo(middleCol.col(0));
-//								i++;
-//			    				Image sti = Utilities.mat2Image(STI);
-//			    				Utilities.onFXThread(imageView.imageProperty(), sti);
-//								frame.copyTo(middleCol);
-//			    				frame.col(frame.cols()/2).copyTo(frame.col(i));
-//			    				i = i+1;
-//			    				System.out.println(i);
-//			    				Image im = Utilities.mat2Image(frame);
-			    				Image im = Utilities.mat2Image(STI);
-			    				Utilities.onFXThread(imageView.imageProperty(), im); 
-			    				double currentFrameNumber = capture.get(Videoio.CAP_PROP_POS_FRAMES);
-			    				double totalFrameCount = capture.get(Videoio.CAP_PROP_FRAME_COUNT);
-			    				slider.setValue(currentFrameNumber / totalFrameCount * (slider.getMax() - slider.getMin()));
-			    			} else { // reach the end of the video
-//			    				Image sti = Utilities.mat2Image(STI);
-//			    				Utilities.onFXThread(imageView.imageProperty(), sti);
-			    				play = false;
-			    				i = 0;
-			    				capture.set(Videoio.CAP_PROP_POS_FRAMES, 0);
-			    			}
-			    			capture.wait();
-		    			} catch (InterruptedException e) {
-		    				e.printStackTrace();
-		    			}
-		    		}
+		        public void run() {
+			        Mat frame = new Mat();
+	    			if (capture.read(frame) && play == true) { // decode successfully
+			            double totalFrameCount = capture.get(Videoio.CAP_PROP_FRAME_COUNT);
+			            System.out.println(totalFrameCount);
+			            STI.create(frame.rows(), (int) totalFrameCount, frame.type());
+	    				frame.col(frame.cols()/2).copyTo(STI.col(i));
+	    				i = i+1;
+	    				Image im = Utilities.mat2Image(STI);
+	    				Utilities.onFXThread(imageView.imageProperty(), im); 
+	    			} else { // reach the end of the video
+	    				play = false;
+	    				i = 0;
+	    				capture.set(Videoio.CAP_PROP_POS_FRAMES, 0);
+	    			}
 		    	}
-			};
-			slider.valueProperty().addListener(new InvalidationListener() {
-			    public void invalidated(Observable ov) {
-			       if (slider.isValueChanging()) {
-			    	   capture.set(Videoio.CAP_PROP_POS_FRAMES, (int) (slider.getValue() / 100 * capture.get(Videoio.CAP_PROP_FRAME_COUNT)));
-			    	   timer.schedule(frameGrabber, 0, TimeUnit.MILLISECONDS);
-			       }
-			    }
-			});
-			
+		    };
 			// terminate the timer if it is running 
 			if (timer != null && !timer.isShutdown()) {
 				timer.shutdown();
@@ -161,8 +122,9 @@ public class Controller {
 			// run the frame grabber
 			timer = Executors.newSingleThreadScheduledExecutor();
 			timer.scheduleAtFixedRate(frameGrabber, 0, Math.round(1000/framePerSecond), TimeUnit.MILLISECONDS);
-		  }
+		}
 	}
+		
 
 	
 	@FXML
@@ -174,6 +136,7 @@ public class Controller {
 		if (capture.isOpened()) { // open successfully
 			System.out.println("Opened successfully");
 			i = 0;
+			play=true;
 			createFrameGrabber();
 		}
 		else {
@@ -186,153 +149,6 @@ public class Controller {
 		// BTW, you should be able to explain briefly what opencv and JavaFX are after finishing this assignment
 	}
 
-	@FXML
-	protected void playImage(ActionEvent event) throws LineUnavailableException, InterruptedException {
-		// This method "plays" the image opened by the user
-		// You should modify the logic so that it plays a video rather than an image
-		if(play == true) {
-			return;
-		}
-		play = true;
-		Mat frame = new Mat();
-		Runnable audioGrabber = new Runnable() {
-			@Override
-			public void run() {
-				while (capture.read(frame) && play == true) {
-		            synchronized (capture) {
-		            	capture.notify();
-		            }
-//					System.out.println(frame.cols());
-//					Mat middleCol = frame.col(frame.cols()/2);
-//					STI.col(i).copyTo(middleCol.col(0));
-//					i++;
-//    				Image sti = Utilities.mat2Image(STI);
-//    				Utilities.onFXThread(imageView.imageProperty(), sti);
-//					frame.copyTo(middleCol);
-		            double totalFrameCount = capture.get(Videoio.CAP_PROP_FRAME_COUNT);
-		            STI.create(frame.rows(), (int) totalFrameCount, frame.type());
-    				frame.col(frame.cols()/2).copyTo(STI.col(i));
-    				i = i+1;
-		            
-					// convert the image from RGB to grayscale
-					Mat grayImage = new Mat();
-					Imgproc.cvtColor(frame, grayImage, Imgproc.COLOR_BGR2GRAY);
-					
-					// resize the image
-					Mat resizedImage = new Mat();
-					Imgproc.resize(grayImage, resizedImage, new Size(width, height));
-					
-					// quantization
-					double[][] roundedImage = new double[resizedImage.rows()][resizedImage.cols()];
-					for (int row = 0; row < resizedImage.rows(); row++) {
-						for (int col = 0; col < resizedImage.cols(); col++) {
-							roundedImage[row][col] = (double)Math.floor(resizedImage.get(row, col)[0]/numberOfQuantizionLevels) / numberOfQuantizionLevels;
-						}
-					}
-					
-					// I used an AudioFormat object and a SourceDataLine object to perform audio output. Feel free to try other options
-			        try {
-			        	AudioFormat audioFormat = new AudioFormat(sampleRate, sampleSizeInBits, numberOfChannels, true, true);
-			            SourceDataLine sourceDataLine = AudioSystem.getSourceDataLine(audioFormat);
-			            sourceDataLine.open(audioFormat, sampleRate);
-			            sourceDataLine.start();
-			            
-			            FloatControl gainControl=(FloatControl) sourceDataLine.getControl(FloatControl.Type.MASTER_GAIN);
-				    	gainControl.setValue((float)(Math.log( (int) volumeSlider.getValue() / 100d) / Math.log(10.0) * 20.0));	// volume is always checked before audio plays
-			        	/* this piece of code to transform linear 0-100 values to decibels  was borrowed from http://www.javased.com/?api=javax.sound.sampled.SourceDataLine */
-				    	
-			            for (int col = 0; col < width; col++) {
-			            	byte[] audioBuffer = new byte[numberOfSamplesPerColumn];
-			            	for (int t = 1; t <= numberOfSamplesPerColumn; t++) {
-			            		double signal = 0;
-			                	for (int row = 0; row < height; row++) {
-			                		int m = height - row - 1; // Be sure you understand why it is height rather width, and why we subtract 1 
-			                		int time = t + col * numberOfSamplesPerColumn;
-			                		double ss = Math.sin(2 * Math.PI * freq[m] * (double)time/sampleRate);
-			                		signal += roundedImage[row][col] * ss;
-			                	}
-			                	double normalizedSignal = signal / height; // signal: [-height, height];  normalizedSignal: [-1, 1]
-			                	audioBuffer[t-1] = (byte) (normalizedSignal*0x7F); // Be sure you understand what the weird number 0x7F is for
-			            	}
-			            	sourceDataLine.write(audioBuffer, 0, numberOfSamplesPerColumn);
-			            }
-			            byte[] click = new byte[numberOfSamplesPerColumn];
-			            for(int i=0; i < numberOfSamplesPerColumn/2; i++) {
-			            	click[2*i] = (byte) 0x56;
-			            	click[2*i+1] = (byte) 0x55;
-			            }
-			            sourceDataLine.write(click, 0, 20);
-			            sourceDataLine.drain();
-			            sourceDataLine.close();
-			        } catch (LineUnavailableException e) {
-			        	e.printStackTrace();
-			        }
-				} 
-				if (image != null){
-					// convert the image from RGB to grayscale
-					Mat grayImage = new Mat();
-					Imgproc.cvtColor(image, grayImage, Imgproc.COLOR_BGR2GRAY);
-					
-					// resize the image
-					Mat resizedImage = new Mat();
-					Imgproc.resize(grayImage, resizedImage, new Size(width, height));
-					
-					// quantization
-					double[][] roundedImage = new double[resizedImage.rows()][resizedImage.cols()];
-					for (int row = 0; row < resizedImage.rows(); row++) {
-						for (int col = 0; col < resizedImage.cols(); col++) {
-							roundedImage[row][col] = (double)Math.floor(resizedImage.get(row, col)[0]/numberOfQuantizionLevels) / numberOfQuantizionLevels;
-						}
-					}
-					
-					// I used an AudioFormat object and a SourceDataLine object to perform audio output. Feel free to try other options
-					try {
-						AudioFormat audioFormat = new AudioFormat(sampleRate, sampleSizeInBits, numberOfChannels, true, true);
-						SourceDataLine sourceDataLine = AudioSystem.getSourceDataLine(audioFormat);
-						sourceDataLine.open(audioFormat, sampleRate);
-						sourceDataLine.start();
-						
-						FloatControl gainControl=(FloatControl) sourceDataLine.getControl(FloatControl.Type.MASTER_GAIN);
-				    	gainControl.setValue((float)(Math.log( (int) volumeSlider.getValue() / 100d) / Math.log(10.0) * 20.0));
-						            
-						for (int col = 0; col < width; col++) {
-							byte[] audioBuffer = new byte[numberOfSamplesPerColumn];
-						    for (int t = 1; t <= numberOfSamplesPerColumn; t++) {
-						    	double signal = 0;
-						    	for (int row = 0; row < height; row++) {
-						    		int m = height - row - 1; // Be sure you understand why it is height rather width, and why we subtract 1 
-						    		int time = t + col * numberOfSamplesPerColumn;
-						    		double ss = Math.sin(2 * Math.PI * freq[m] * (double)time/sampleRate);
-						    		signal += roundedImage[row][col] * ss;
-						    	}
-						    	double normalizedSignal = signal / height; // signal: [-height, height];  normalizedSignal: [-1, 1]
-						    	audioBuffer[t-1] = (byte) (normalizedSignal*0x7F); // Be sure you understand what the weird number 0x7F is for
-						    }
-						    sourceDataLine.write(audioBuffer, 0, numberOfSamplesPerColumn);
-						}
-						byte[] click = new byte[numberOfSamplesPerColumn];
-						for(int i=0; i < numberOfSamplesPerColumn/2; i++) {
-							click[2*i] = (byte) 0x56;
-							click[2*i+1] = (byte) 0x55;
-						}
-						sourceDataLine.write(click, 0, 20);
-						sourceDataLine.drain();
-						sourceDataLine.close();
-					} catch (LineUnavailableException e) {
-						e.printStackTrace();
-						}
-					}
-			}
-		};
-		
-		// terminate the timer if it is running 
-		if (audioTimer != null && !audioTimer.isShutdown()) {
-			audioTimer.shutdown();
-			audioTimer.awaitTermination(Math.round(1000/capture.get(Videoio.CAP_PROP_FPS)), TimeUnit.MILLISECONDS);
-		}
-		audioTimer = Executors.newSingleThreadScheduledExecutor();
-		audioTimer.execute(audioGrabber);
-	}
 	
 	@FXML
 	protected void stopImage(ActionEvent event) {

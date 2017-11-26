@@ -45,6 +45,9 @@ public class Controller {
 	private int numberOfQuantizionLevels;
 	private int numberOfSamplesPerColumn;
 	private boolean play = false;
+	int i = 0;
+	
+	private Mat STI = new Mat();
 	
 	@FXML
 	private Slider slider;
@@ -69,7 +72,8 @@ public class Controller {
 		
 		numberOfQuantizionLevels = 16;
 		
-		numberOfSamplesPerColumn = 500;
+		numberOfSamplesPerColumn = 20;
+		
 		
 		// assign frequencies for each particular row
 		freq = new double[height]; // Be sure you understand why it is height rather than width
@@ -99,7 +103,6 @@ public class Controller {
 	protected void createFrameGrabber() throws InterruptedException {
 		if (capture != null && capture.isOpened()) { // the video must be open
 			double framePerSecond = capture.get(Videoio.CAP_PROP_FPS);
-			
 		    // create a runnable to fetch new frames periodically
 		    Runnable frameGrabber = new Runnable() {
 		    	@Override
@@ -108,13 +111,29 @@ public class Controller {
 		    			try {
 //		    				System.out.println("Inside run");
 				    		Mat frame = new Mat();
+//							capture.read(STI);
 			    			if (capture.read(frame) && play == true) { // decode successfully
-			    				Image im = Utilities.mat2Image(frame);
+//								System.out.println(frame.cols());
+//								Mat middleCol = frame.col(frame.cols()/2);
+//								STI.col(i).copyTo(middleCol.col(0));
+//								i++;
+//			    				Image sti = Utilities.mat2Image(STI);
+//			    				Utilities.onFXThread(imageView.imageProperty(), sti);
+//								frame.copyTo(middleCol);
+//			    				frame.col(frame.cols()/2).copyTo(frame.col(i));
+//			    				i = i+1;
+//			    				System.out.println(i);
+//			    				Image im = Utilities.mat2Image(frame);
+			    				Image im = Utilities.mat2Image(STI);
 			    				Utilities.onFXThread(imageView.imageProperty(), im); 
 			    				double currentFrameNumber = capture.get(Videoio.CAP_PROP_POS_FRAMES);
 			    				double totalFrameCount = capture.get(Videoio.CAP_PROP_FRAME_COUNT);
 			    				slider.setValue(currentFrameNumber / totalFrameCount * (slider.getMax() - slider.getMin()));
 			    			} else { // reach the end of the video
+//			    				Image sti = Utilities.mat2Image(STI);
+//			    				Utilities.onFXThread(imageView.imageProperty(), sti);
+			    				play = false;
+			    				i = 0;
 			    				capture.set(Videoio.CAP_PROP_POS_FRAMES, 0);
 			    			}
 			    			capture.wait();
@@ -154,6 +173,7 @@ public class Controller {
 		capture = new VideoCapture(fileName); // open video file
 		if (capture.isOpened()) { // open successfully
 			System.out.println("Opened successfully");
+			i = 0;
 			createFrameGrabber();
 		}
 		else {
@@ -182,6 +202,18 @@ public class Controller {
 		            synchronized (capture) {
 		            	capture.notify();
 		            }
+//					System.out.println(frame.cols());
+//					Mat middleCol = frame.col(frame.cols()/2);
+//					STI.col(i).copyTo(middleCol.col(0));
+//					i++;
+//    				Image sti = Utilities.mat2Image(STI);
+//    				Utilities.onFXThread(imageView.imageProperty(), sti);
+//					frame.copyTo(middleCol);
+		            double totalFrameCount = capture.get(Videoio.CAP_PROP_FRAME_COUNT);
+		            STI.create(frame.rows(), (int) totalFrameCount, frame.type());
+    				frame.col(frame.cols()/2).copyTo(STI.col(i));
+    				i = i+1;
+		            
 					// convert the image from RGB to grayscale
 					Mat grayImage = new Mat();
 					Imgproc.cvtColor(frame, grayImage, Imgproc.COLOR_BGR2GRAY);
@@ -225,7 +257,7 @@ public class Controller {
 			            	sourceDataLine.write(audioBuffer, 0, numberOfSamplesPerColumn);
 			            }
 			            byte[] click = new byte[numberOfSamplesPerColumn];
-			            for(int i=0; i < 250; i++) {
+			            for(int i=0; i < numberOfSamplesPerColumn/2; i++) {
 			            	click[2*i] = (byte) 0x56;
 			            	click[2*i+1] = (byte) 0x55;
 			            }
@@ -279,7 +311,7 @@ public class Controller {
 						    sourceDataLine.write(audioBuffer, 0, numberOfSamplesPerColumn);
 						}
 						byte[] click = new byte[numberOfSamplesPerColumn];
-						for(int i=0; i < 250; i++) {
+						for(int i=0; i < numberOfSamplesPerColumn/2; i++) {
 							click[2*i] = (byte) 0x56;
 							click[2*i+1] = (byte) 0x55;
 						}
@@ -288,7 +320,7 @@ public class Controller {
 						sourceDataLine.close();
 					} catch (LineUnavailableException e) {
 						e.printStackTrace();
-					}
+						}
 					}
 			}
 		};

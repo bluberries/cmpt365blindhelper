@@ -100,16 +100,18 @@ public class Controller {
 			        Mat frame = new Mat();
 	    			if (capture.read(frame) && play == true) { // decode successfully
 			            double totalFrameCount = capture.get(Videoio.CAP_PROP_FRAME_COUNT);
-			            System.out.println(totalFrameCount);
+//			            System.out.println(totalFrameCount);
 			            STI.create(frame.rows(), (int) totalFrameCount, frame.type());
 	    				frame.col(frame.cols()/2).copyTo(STI.col(i));
 	    				i = i+1;
 	    				Image im = Utilities.mat2Image(STI);
 	    				Utilities.onFXThread(imageView.imageProperty(), im); 
-	    			} else { // reach the end of the video
+	    			} else if (!capture.read(frame)) { // reach the end of the video
 	    				play = false;
 	    				i = 0;
 	    				capture.set(Videoio.CAP_PROP_POS_FRAMES, 0);
+	    			} else { // video paused
+	    				//do nothing
 	    			}
 		    	}
 		    };
@@ -152,6 +154,7 @@ public class Controller {
 	
 	@FXML
 	protected void stopImage(ActionEvent event) {
-		play = false;
+		System.out.println(i);
+		play = !play;
 	}
 }

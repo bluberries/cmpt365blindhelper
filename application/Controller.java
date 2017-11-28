@@ -12,12 +12,12 @@ import org.opencv.videoio.Videoio;
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.scene.control.Button;
 import javafx.scene.control.Slider;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.stage.FileChooser;
 import utilities.Utilities;
-
 public class Controller {
 	
 	
@@ -27,20 +27,27 @@ public class Controller {
 	private Mat image;
 	
 	private boolean play = false;
+	private boolean toggle = true;
 	int i = 0;
 	
 	private Mat STI = new Mat();
 	
 	@FXML
+	Button Toggle;
+	
+	@FXML
 	private Slider slider;
+	
+	@FXML
+	private Slider volumeSlider;
 	
 	private VideoCapture capture;
 	private ScheduledExecutorService timer;
-	
 	@FXML
 	private void initialize() {
 		// Optional: You should modify the logic so that the user can change these values
 		// You may also do some experiments with different values
+		
 		
 		
 		
@@ -66,16 +73,22 @@ public class Controller {
 		    	@Override
 		        public void run() {
 			        Mat frame = new Mat();
-	    			if (capture.read(frame) && play == true) { // decode successfully
+			        Mat frame2 = new Mat();
+	    			if (play == true && capture.read(frame)) { // decode successfully
 			            double totalFrameCount = capture.get(Videoio.CAP_PROP_FRAME_COUNT);
-			            double currentFrameNumber = capture.get(Videoio.CAP_PROP_POS_FRAMES);
 //			            System.out.println(totalFrameCount);
 			            STI.create(frame.rows(), (int) totalFrameCount, frame.type());
-	    				frame.col(frame.cols()/2).copyTo(STI.col(i));
-	    				i = i+1;
-	    				Image im = Utilities.mat2Image(STI);
-	    				Utilities.onFXThread(imageView.imageProperty(), im); 
-	    				slider.setValue(currentFrameNumber / totalFrameCount * (slider.getMax() - slider.getMin()));
+	    				if(toggle == true) { //create STI by copying pixels
+	    					frame.col(frame.cols()/2).copyTo(STI.col(i));
+		    				i = i+1;
+		    				Image im = Utilities.mat2Image(STI);
+		    				Utilities.onFXThread(imageView.imageProperty(), im); 
+	    				} else if(capture.read(frame2)){ //create STI by histogram
+	    					calcHist(frame);
+	    					calcHist(frame2);
+		    				Image im = Utilities.mat2Image(STI);
+		    				Utilities.onFXThread(imageView.imageProperty(), im); 
+	    				}
 	    			} else if (!capture.read(frame)) { // reach the end of the video
 	    				play = false;
 	    				i = 0;
@@ -120,7 +133,64 @@ public class Controller {
 	
 	@FXML
 	protected void stopImage(ActionEvent event) {
-		System.out.println(i);
+//		System.out.println(i);
 		play = !play;
+	}
+	
+	@FXML
+	protected void toggleImage(ActionEvent event) {
+		toggle = !toggle;
+		if(toggle == true) {
+			Toggle.setText("Copy");
+		} else {
+			Toggle.setText("Hist");
+		}
+	}
+	
+	//calculates the chromaticity of each pixel in the frame then creates and returns a 2D histogram
+	//input should be a mat object with number of columns == 1
+	protected float[][] calcHist(Mat mat) {
+		int N = (int) (1 + (Math.log(mat.rows())/Math.log(2)));
+		int sum = 0;
+//		System.out.println("number of bins == " + N);
+		float[][] hist = new float[N][N];
+		for(int i=0; i<N; i++) {
+			for(int j=0; j<N; j++) {
+				hist[i][j] = 0;
+			}
+		}
+		for(int i=0; i<mat.rows(); i++) {
+			for(int j=0; j<mat.cols(); j++) {
+				double[] pixel  = mat.get(i, j);
+				if(pixel[0] != 0 && pixel[1] != 0 && pixel[2] != 0) { //making sure we don't divide by 0
+					double R = pixel[0]/(pixel[0] + pixel[1] + pixel[2]);
+					double G = pixel[1]/(pixel[0] + pixel[1] + pixel[2]);
+					
+					//dividing pixels into the right bin for histogram
+					int r = (int) Math.round(R * N);
+					int g = (int) Math.round(G * N);
+					hist[r][g] = hist[r][g] + 1;
+					sum++;
+				} else {
+					//keep it at 0,0
+					int r = 0;
+					int g = 0;
+					hist[r][g] = hist[r][g] + 1;
+					sum++;
+				}
+			}
+		}
+		for(int i=0; i<N; i++) {
+			for(int j=0; j<N; j++) {
+				hist[i][j] = hist[i][j]/sum;
+			}
+		}
+//		for(int i=0; i<N; i++) {
+//			for(int j=0; j<N; j++) {
+//				System.out.print(hist[i][j] + "     ");
+//			}
+//			System.out.println();
+//		}
+		return hist;
 	}
 }

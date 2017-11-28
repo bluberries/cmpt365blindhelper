@@ -9,6 +9,7 @@ import org.opencv.core.Mat;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.videoio.VideoCapture;
 import org.opencv.videoio.Videoio;
+import org.opencv.imgproc.Imgproc;
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -34,9 +35,6 @@ public class Controller {
 	
 	@FXML
 	Button Toggle;
-	
-	@FXML
-	private Slider slider;
 	
 	@FXML
 	private Slider volumeSlider;
@@ -73,7 +71,6 @@ public class Controller {
 		    	@Override
 		        public void run() {
 			        Mat frame = new Mat();
-			        Mat frame2 = new Mat();
 	    			if (play == true && capture.read(frame)) { // decode successfully
 			            double totalFrameCount = capture.get(Videoio.CAP_PROP_FRAME_COUNT);
 //			            System.out.println(totalFrameCount);
@@ -83,9 +80,10 @@ public class Controller {
 		    				i = i+1;
 		    				Image im = Utilities.mat2Image(STI);
 		    				Utilities.onFXThread(imageView.imageProperty(), im); 
-	    				} else if(capture.read(frame2)){ //create STI by histogram
+	    				} else if(toggle == false){ //create STI by histogram; when using capture.read(frame), it will read the next frame, so I just changed it check for toggle
 	    					calcHist(frame);
-	    					calcHist(frame2);
+	    					capture.read(frame);
+	    					calcHist(frame);
 		    				Image im = Utilities.mat2Image(STI);
 		    				Utilities.onFXThread(imageView.imageProperty(), im); 
 	    				}
@@ -185,12 +183,10 @@ public class Controller {
 				hist[i][j] = hist[i][j]/sum;
 			}
 		}
-//		for(int i=0; i<N; i++) {
-//			for(int j=0; j<N; j++) {
-//				System.out.print(hist[i][j] + "     ");
-//			}
-//			System.out.println();
-//		}
 		return hist;
+	}
+	
+	protected double difHist(Mat hist1, Mat hist2) {
+		return compareHist(hist1, hist2, open.CV_COMP_INTERSECT);
 	}
 }

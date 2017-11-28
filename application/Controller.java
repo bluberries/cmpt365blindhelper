@@ -5,6 +5,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.videoio.VideoCapture;
@@ -24,6 +26,7 @@ public class Controller {
 	
 	@FXML
 	private ImageView imageView; // the image display window in the GUI
+	private ImageView imageView1; // second display in the GUI
 	
 	private Mat image;
 	
@@ -46,7 +49,8 @@ public class Controller {
 		// Optional: You should modify the logic so that the user can change these values
 		// You may also do some experiments with different values
 		
-		
+//		Mat object = new Mat(2,2, 2);
+//		System.out.println(object.dump());
 		
 		
 		
@@ -81,9 +85,10 @@ public class Controller {
 		    				Image im = Utilities.mat2Image(STI);
 		    				Utilities.onFXThread(imageView.imageProperty(), im); 
 	    				} else if(toggle == false){ //create STI by histogram; when using capture.read(frame), it will read the next frame, so I just changed it check for toggle
-	    					calcHist(frame);
+	    					Mat prevFrame = calcHist(frame.col(frame.cols()/2));
+	    					System.out.println(prevFrame.dump());
 	    					capture.read(frame);
-	    					calcHist(frame);
+	    					calcHist(frame.col(frame.cols()/2));
 		    				Image im = Utilities.mat2Image(STI);
 		    				Utilities.onFXThread(imageView.imageProperty(), im); 
 	    				}
@@ -147,14 +152,14 @@ public class Controller {
 	
 	//calculates the chromaticity of each pixel in the frame then creates and returns a 2D histogram
 	//input should be a mat object with number of columns == 1
-	protected float[][] calcHist(Mat mat) {
+	protected Mat calcHist(Mat mat) {
 		int N = (int) (1 + (Math.log(mat.rows())/Math.log(2)));
 		int sum = 0;
 //		System.out.println("number of bins == " + N);
-		float[][] hist = new float[N][N];
+		Mat hist = new Mat(N, N, CvType.CV_32F);
 		for(int i=0; i<N; i++) {
 			for(int j=0; j<N; j++) {
-				hist[i][j] = 0;
+				hist.put(i, j, 0);
 			}
 		}
 		for(int i=0; i<mat.rows(); i++) {
@@ -167,26 +172,26 @@ public class Controller {
 					//dividing pixels into the right bin for histogram
 					int r = (int) Math.round(R * N);
 					int g = (int) Math.round(G * N);
-					hist[r][g] = hist[r][g] + 1;
+					hist.put(r, g, hist.get(r,g)[0] + 1);
 					sum++;
 				} else {
 					//keep it at 0,0
 					int r = 0;
 					int g = 0;
-					hist[r][g] = hist[r][g] + 1;
+					hist.put(r, g, hist.get(r,g)[0] + 1);
 					sum++;
 				}
 			}
 		}
 		for(int i=0; i<N; i++) {
 			for(int j=0; j<N; j++) {
-				hist[i][j] = hist[i][j]/sum;
+				hist.put(i, j, hist.get(i,j)[0]/sum);
 			}
 		}
 		return hist;
 	}
 	
 	protected double difHist(Mat hist1, Mat hist2) {
-		return compareHist(hist1, hist2, open.CV_COMP_INTERSECT);
+		return Imgproc.compareHist(hist1, hist2, Imgproc.CV_COMP_INTERSECT);
 	}
 }

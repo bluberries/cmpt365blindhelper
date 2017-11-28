@@ -67,17 +67,5 @@
       </VBox>
    </center>
    <right>
-      <VBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" BorderPane.alignment="CENTER">
-         <children>
-            <Slider fx:id="volumeSlider" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" orientation="VERTICAL" BorderPane.alignment="CENTER" VBox.vgrow="ALWAYS">
-               <VBox.margin>
-                  <Insets bottom="50.0" top="50.0" />
-               </VBox.margin>
-            </Slider>
-         </children>
-         <BorderPane.margin>
-            <Insets right="20.0" top="50.0" />
-         </BorderPane.margin>
-      </VBox>
    </right>
 </BorderPane>

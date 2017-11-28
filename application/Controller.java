@@ -5,21 +5,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import javax.sound.sampled.AudioFormat;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.FloatControl;
-import javax.sound.sampled.LineUnavailableException;
-import javax.sound.sampled.SourceDataLine;
-
 import org.opencv.core.Mat;
-import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
-import org.opencv.imgproc.Imgproc;
 import org.opencv.videoio.VideoCapture;
 import org.opencv.videoio.Videoio;
 
-import javafx.beans.InvalidationListener;
-import javafx.beans.Observable;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Slider;
@@ -28,7 +18,6 @@ import javafx.scene.image.ImageView;
 import javafx.stage.FileChooser;
 import utilities.Utilities;
 
-import java.util.concurrent.TimeUnit;
 public class Controller {
 	
 	
@@ -37,14 +26,6 @@ public class Controller {
 	
 	private Mat image;
 	
-	private int width;
-	private int height;
-	private int sampleRate; // sampling frequency
-	private int sampleSizeInBits;
-	private int numberOfChannels;
-	private double[] freq; // frequencies for each particular row
-	private int numberOfQuantizionLevels;
-	private int numberOfSamplesPerColumn;
 	private boolean play = false;
 	int i = 0;
 	
@@ -53,27 +34,14 @@ public class Controller {
 	@FXML
 	private Slider slider;
 	
-	@FXML
-	private Slider volumeSlider;
-	
 	private VideoCapture capture;
 	private ScheduledExecutorService timer;
-	private ScheduledExecutorService audioTimer;
 	
 	@FXML
 	private void initialize() {
 		// Optional: You should modify the logic so that the user can change these values
 		// You may also do some experiments with different values
 		
-		width = 64;
-		height = 64;
-		sampleRate = 8000;
-		sampleSizeInBits = 8;
-		numberOfChannels = 1;
-		
-		numberOfQuantizionLevels = 16;
-		
-		numberOfSamplesPerColumn = 20;
 		
 		
 		
@@ -100,12 +68,14 @@ public class Controller {
 			        Mat frame = new Mat();
 	    			if (capture.read(frame) && play == true) { // decode successfully
 			            double totalFrameCount = capture.get(Videoio.CAP_PROP_FRAME_COUNT);
+			            double currentFrameNumber = capture.get(Videoio.CAP_PROP_POS_FRAMES);
 //			            System.out.println(totalFrameCount);
 			            STI.create(frame.rows(), (int) totalFrameCount, frame.type());
 	    				frame.col(frame.cols()/2).copyTo(STI.col(i));
 	    				i = i+1;
 	    				Image im = Utilities.mat2Image(STI);
 	    				Utilities.onFXThread(imageView.imageProperty(), im); 
+	    				slider.setValue(currentFrameNumber / totalFrameCount * (slider.getMax() - slider.getMin()));
 	    			} else if (!capture.read(frame)) { // reach the end of the video
 	    				play = false;
 	    				i = 0;
@@ -145,10 +115,6 @@ public class Controller {
 			image = Imgcodecs.imread(fileName);
 			imageView.setImage(Utilities.mat2Image(image));
 		}
-		// You don't have to understand how mat2Image() works. 
-		// In short, it converts the image from the Mat format to the Image format
-		// The Mat format is used by the opencv library, and the Image format is used by JavaFX
-		// BTW, you should be able to explain briefly what opencv and JavaFX are after finishing this assignment
 	}
 
 	

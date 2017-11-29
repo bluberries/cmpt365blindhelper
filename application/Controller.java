@@ -32,14 +32,13 @@ public class Controller {
 	private Mat image;
 	
 	private boolean play = false;
-	private boolean toggle = true;
 	int i = 0;
 	
 	private Mat STICopy = new Mat();
 	private Mat STIHist = new Mat();
 	
 	@FXML
-	Button Toggle;
+	Button pause;
 	
 	@FXML
 	private Slider volumeSlider;
@@ -81,45 +80,42 @@ public class Controller {
 		        public void run() {
 //			        Mat frame = new Mat();
 //			        Mat prevFrame = new Mat();
-	    			if (play == true && capture.read(frame)) { // decode successfully
-			            double totalFrameCount = capture.get(Videoio.CAP_PROP_FRAME_COUNT);
-//			            System.out.println(totalFrameCount);
-			            STICopy.create(frame.rows(), (int) totalFrameCount, frame.type());
-			            STIHist.create(frame.cols(), (int) totalFrameCount, frame.type());
-    					frame.col(frame.cols()/2).copyTo(STICopy.col(i));
-	    				i = i+1;
-	    				Image im = Utilities.mat2Image(STICopy);
-	    				Utilities.onFXThread(imageView.imageProperty(), im); 
-//    					capture.read(prevFrame);
-//	    					System.out.println("frame type = " + frame.type());
-//	    					System.out.println("Calculating scalar I");
-	    				if (capture.get(Videoio.CAP_PROP_POS_FRAMES) > 1) {
-	    					Mat column = difMat(prevFrame, frame);
-	//	    					System.out.println(column.get(0, 0)[0] + " " + column.get(0, 0)[1] + " " + column.get(0, 0)[2]);
-	//	    					System.out.println("Copying to STI");
-	//	    					System.out.println("STIHist type = " + STIHist.type());
-	//	    					System.out.println("column type = " + column.type());
-	    					column.col(0).copyTo(STIHist.col(i));
-	//	    					System.out.println(STIHist.get(0, 0)[0] + " " + STIHist.get(0, 0)[1] + " " + STIHist.get(0, 0)[2]);
-		    				Image im2 = Utilities.mat2Image(STIHist);
-		    				Utilities.onFXThread(imageView1.imageProperty(), im2);
+	    			if (play == true) { 
+	    				if (capture.read(frame)) {
+				            double totalFrameCount = capture.get(Videoio.CAP_PROP_FRAME_COUNT);
+	//			            System.out.println(totalFrameCount);
+				            STICopy.create(frame.rows(), (int) totalFrameCount, frame.type());
+				            STIHist.create(frame.cols(), (int) totalFrameCount, frame.type());
+	    					frame.col(frame.cols()/2).copyTo(STICopy.col(i));
+		    				i = i+1;
+		    				Image im = Utilities.mat2Image(STICopy);
+		    				Utilities.onFXThread(imageView.imageProperty(), im); 
+	//    					capture.read(prevFrame);
+	//	    					System.out.println("frame type = " + frame.type());
+	//	    					System.out.println("Calculating scalar I");
+		    				if (capture.get(Videoio.CAP_PROP_POS_FRAMES) > 1 && capture.get(Videoio.CAP_PROP_POS_FRAMES) < totalFrameCount) {
+		    					Mat column = difMat(prevFrame, frame);
+		//	    					System.out.println(column.get(0, 0)[0] + " " + column.get(0, 0)[1] + " " + column.get(0, 0)[2]);
+		//	    					System.out.println("Copying to STI");
+		//	    					System.out.println("STIHist type = " + STIHist.type());
+		//	    					System.out.println("column type = " + column.type());
+		    					column.col(0).copyTo(STIHist.col(i));
+		//	    					System.out.println(STIHist.get(0, 0)[0] + " " + STIHist.get(0, 0)[1] + " " + STIHist.get(0, 0)[2]);
+			    				Image im2 = Utilities.mat2Image(STIHist);
+			    				Utilities.onFXThread(imageView1.imageProperty(), im2);
+		    				}
+		    				frame.copyTo(prevFrame);
+	//		    				System.out.println("Setting previous frame to frame after processing");
+	//		    				if(i != 0) {
+	//			    				prevFrame = copyHelper(frame);
+	//			    				capture.read(frame);
+	//		    				}
+		    				}
+	    				else { // reach the end of the video
+		    				play = false;
+		    				i = 0;
+		    				timer.shutdownNow();
 	    				}
-	    				frame.copyTo(prevFrame);
-//		    				System.out.println("Setting previous frame to frame after processing");
-//		    				if(i != 0) {
-//			    				prevFrame = copyHelper(frame);
-//			    				capture.read(frame);
-//		    				}
-	    				}
-	   
-	    			else if (!capture.read(frame)) { // reach the end of the video
-	    				play = false;
-	    				i = 0;
-	    				capture.set(Videoio.CAP_PROP_POS_FRAMES, 0);
-	    				System.out.println(STIHist.rows());
-	    				System.out.println(STIHist.cols());
-	    			} else { // video paused
-	    				//do nothing
 	    			}
 		    	}
 		    };
@@ -164,18 +160,12 @@ public class Controller {
 
 	
 	@FXML
-	protected void stopImage(ActionEvent event) {
-//		System.out.println(i);
+	protected void pauseImage(ActionEvent event) {
 		play = !play;
-	}
-	
-	@FXML
-	protected void toggleImage(ActionEvent event) {
-		toggle = !toggle;
-		if(toggle == true) {
-			Toggle.setText("Copy");
+		if(play) {
+			pause.setText("Pause");
 		} else {
-			Toggle.setText("Hist");
+			pause.setText("Resume");
 		}
 	}
 	

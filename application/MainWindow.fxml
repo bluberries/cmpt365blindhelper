@@ -29,12 +29,7 @@
                         <Insets left="150.0" top="20.0" />
                      </HBox.margin>
                   </Button>
-                  <Button maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false" onAction="#stopImage" prefHeight="40.0" prefWidth="100.0" text="Stop" HBox.hgrow="ALWAYS">
-                     <HBox.margin>
-                        <Insets left="50.0" top="20.0" />
-                     </HBox.margin>
-                  </Button>
-                  <Button fx:id="Toggle" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false" onAction="#toggleImage" prefHeight="40.0" prefWidth="100.0" text="Copy" HBox.hgrow="ALWAYS">
+                  <Button fx:id="pause" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" mnemonicParsing="false" onAction="#pauseImage" prefHeight="40.0" prefWidth="100.0" text="Pause" HBox.hgrow="ALWAYS">
                      <HBox.margin>
                         <Insets left="50.0" top="20.0" />
                      </HBox.margin>

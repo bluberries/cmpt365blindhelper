@@ -26,6 +26,7 @@ public class Controller {
 	
 	@FXML
 	private ImageView imageView; // the image display window in the GUI
+	@FXML
 	private ImageView imageView1; // second display in the GUI
 	
 	private Mat image;
@@ -34,7 +35,8 @@ public class Controller {
 	private boolean toggle = true;
 	int i = 0;
 	
-	private Mat STI = new Mat();
+	private Mat STICopy = new Mat();
+	private Mat STIHist = new Mat();
 	
 	@FXML
 	Button Toggle;
@@ -75,22 +77,47 @@ public class Controller {
 		    	@Override
 		        public void run() {
 			        Mat frame = new Mat();
+			        Mat prevFrame = new Mat();
 	    			if (play == true && capture.read(frame)) { // decode successfully
 			            double totalFrameCount = capture.get(Videoio.CAP_PROP_FRAME_COUNT);
 //			            System.out.println(totalFrameCount);
-			            STI.create(frame.rows(), (int) totalFrameCount, frame.type());
+			            STICopy.create(frame.rows(), (int) totalFrameCount, frame.type());
+			            STIHist.create(frame.cols(), (int) totalFrameCount, frame.type());
 	    				if(toggle == true) { //create STI by copying pixels
-	    					frame.col(frame.cols()/2).copyTo(STI.col(i));
+	    					frame.col(frame.cols()/2).copyTo(STICopy.col(i));
 		    				i = i+1;
-		    				Image im = Utilities.mat2Image(STI);
+		    				Image im = Utilities.mat2Image(STICopy);
 		    				Utilities.onFXThread(imageView.imageProperty(), im); 
-	    				} else if(toggle == false){ //create STI by histogram; when using capture.read(frame), it will read the next frame, so I just changed it check for toggle
-	    					Mat prevFrame = calcHist(frame.col(frame.cols()/2));
-	    					System.out.println(prevFrame.dump());
-	    					capture.read(frame);
-	    					calcHist(frame.col(frame.cols()/2));
-		    				Image im = Utilities.mat2Image(STI);
-		    				Utilities.onFXThread(imageView.imageProperty(), im); 
+	    				} else if(toggle == false){ //create STI by histogram; when using capture.read(frame), it will read the next frame
+	    					if(i == 0) {
+	    						System.out.println("In initial run, grabbing two initial frames");
+	    						prevFrame = copyHelper(frame);
+	    						if(frame.equals(prevFrame)) {
+	    							System.out.println("copying worked");
+	    						} else {
+	    							System.out.println("copy failed");
+	    						}
+	    						if(capture.read(frame)) {
+	    							System.out.println("found next frame");
+	    						} else {
+	    							System.out.println("read failed");
+	    						}
+//	    						System.out.println(frame.dump());
+//	    						System.out.println(prevFrame.dump());
+//	    						System.out.println("sjdkofjsdklfjdskl");
+	    					}
+//	    					System.out.println("Calculating scalar I");
+	    					Mat column = difMat(frame, prevFrame);
+	    					column.col(0).copyTo(STIHist.col(i));
+	    					i = i+1;
+		    				Image im = Utilities.mat2Image(STIHist);
+		    				Utilities.onFXThread(imageView1.imageProperty(), im);
+//		    				System.out.println("Setting previous frame to frame after processing");
+		    				prevFrame = copyHelper(frame);
+	    				} else {
+	    					System.out.println("Couldn't read next frame");
+	    					System.out.println("i is " + i);
+	    					System.out.println("Total frame count is " + totalFrameCount);
 	    				}
 	    			} else if (!capture.read(frame)) { // reach the end of the video
 	    				play = false;
@@ -113,7 +140,12 @@ public class Controller {
 		}
 	}
 		
-
+	protected Mat copyHelper(Mat source) {
+//		for(int i=0; i<source.cols(); i++) {
+//			source.col(i).copyTo(destination.col(i));
+//		}
+		return source;
+	}
 	
 	@FXML
 	protected void openImage(ActionEvent event) throws InterruptedException {
@@ -130,6 +162,7 @@ public class Controller {
 		else {
 			image = Imgcodecs.imread(fileName);
 			imageView.setImage(Utilities.mat2Image(image));
+			imageView1.setImage(Utilities.mat2Image(image));
 		}
 	}
 
@@ -193,5 +226,32 @@ public class Controller {
 	
 	protected double difHist(Mat hist1, Mat hist2) {
 		return Imgproc.compareHist(hist1, hist2, Imgproc.CV_COMP_INTERSECT);
+	}
+	
+	//Creates a Mat of scalar I values from 2 frames
+	//The Mat has number of rows = frame's number of columns
+	//and the number of columns = 1
+	protected Mat difMat(Mat prevFrame, Mat currFrame) {
+//		Mat[] prevFrameHist = new Mat[prevFrame.cols()];
+//		Mat[] currFrameHist = new Mat[currFrame.cols()];
+		int cols = currFrame.cols();
+		double[] difHist = new double[cols];
+		Mat result = new Mat(cols, 1, prevFrame.type());
+		for(int i=0; i<cols; i++) {
+//			prevFrameHist[i] = calcHist(prevFrame.col(i));
+//			currFrameHist[i] = calcHist(currFrame.col(i));
+			difHist[i] = difHist(calcHist(prevFrame.col(i)), calcHist(currFrame.col(i)));
+		}
+		for(int i=0; i<cols; i++) {
+			int color = (int) Math.round(difHist[i] * 255);
+//			double[] pixelColor = {color, color, color};
+			result.put(i, 0, color, color, color);
+		}
+//		System.out.println("result rows = " + result.rows());
+//		System.out.println("result cols = " + result.cols());
+//		System.out.println(result.dump());
+//		double[] color = result.get(0, 0);
+//		System.out.println("pixel in result: " + color[0] + " " + color[1] + " " + color[2] + " " );
+		return result;
 	}
 }

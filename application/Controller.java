@@ -86,50 +86,38 @@ public class Controller {
 //			            System.out.println(totalFrameCount);
 			            STICopy.create(frame.rows(), (int) totalFrameCount, frame.type());
 			            STIHist.create(frame.cols(), (int) totalFrameCount, frame.type());
-	    				if(toggle == true) { //create STI by copying pixels
-	    					frame.col(frame.cols()/2).copyTo(STICopy.col(i));
-		    				i = i+1;
-		    				Image im = Utilities.mat2Image(STICopy);
-		    				Utilities.onFXThread(imageView.imageProperty(), im); 
-	    				} else if(toggle == false){ //create STI by histogram; when using capture.read(frame), it will read the next frame
-//	    					if(i == 0) {
-//	    						prevFrame = copyHelper(frame);
-//	    						if(frame.equals(prevFrame)) {
-//	    							System.out.println("copying worked");
-//	    							System.out.println(frame.col(0).dump());
-//		    						System.out.println(prevFrame.col(0).dump());
-//	    						} else {
-//	    							System.out.println("copy failed");
-//	    						}
-//	    						if(capture.read(frame)) {
-//	    							System.out.println("found next frame");
-//	    						} else {
-//	    							System.out.println("read failed");
-//	    						}
-//	    					}
-	    					capture.read(prevFrame);
+    					frame.col(frame.cols()/2).copyTo(STICopy.col(i));
+	    				i = i+1;
+	    				Image im = Utilities.mat2Image(STICopy);
+	    				Utilities.onFXThread(imageView.imageProperty(), im); 
+//    					capture.read(prevFrame);
 //	    					System.out.println("frame type = " + frame.type());
 //	    					System.out.println("Calculating scalar I");
+	    				if (capture.get(Videoio.CAP_PROP_POS_FRAMES) > 1) {
 	    					Mat column = difMat(prevFrame, frame);
-//	    					System.out.println(column.get(0, 0)[0] + " " + column.get(0, 0)[1] + " " + column.get(0, 0)[2]);
-//	    					System.out.println("Copying to STI");
-//	    					System.out.println("STIHist type = " + STIHist.type());
-//	    					System.out.println("column type = " + column.type());
+	//	    					System.out.println(column.get(0, 0)[0] + " " + column.get(0, 0)[1] + " " + column.get(0, 0)[2]);
+	//	    					System.out.println("Copying to STI");
+	//	    					System.out.println("STIHist type = " + STIHist.type());
+	//	    					System.out.println("column type = " + column.type());
 	    					column.col(0).copyTo(STIHist.col(i));
-//	    					System.out.println(STIHist.get(0, 0)[0] + " " + STIHist.get(0, 0)[1] + " " + STIHist.get(0, 0)[2]);
-		    				Image im = Utilities.mat2Image(STIHist);
-		    				Utilities.onFXThread(imageView1.imageProperty(), im);
+	//	    					System.out.println(STIHist.get(0, 0)[0] + " " + STIHist.get(0, 0)[1] + " " + STIHist.get(0, 0)[2]);
+		    				Image im2 = Utilities.mat2Image(STIHist);
+		    				Utilities.onFXThread(imageView1.imageProperty(), im2);
+	    				}
+	    				frame.copyTo(prevFrame);
 //		    				System.out.println("Setting previous frame to frame after processing");
 //		    				if(i != 0) {
 //			    				prevFrame = copyHelper(frame);
 //			    				capture.read(frame);
 //		    				}
-	    					i = i+1;
 	    				}
-	    			} else if (!capture.read(frame)) { // reach the end of the video
+	   
+	    			else if (!capture.read(frame)) { // reach the end of the video
 	    				play = false;
 	    				i = 0;
 	    				capture.set(Videoio.CAP_PROP_POS_FRAMES, 0);
+	    				System.out.println(STIHist.rows());
+	    				System.out.println(STIHist.cols());
 	    			} else { // video paused
 	    				//do nothing
 	    			}

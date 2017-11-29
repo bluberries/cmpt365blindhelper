@@ -58,7 +58,7 @@
    <center>
       <VBox>
          <children>
-            <HBox prefHeight="100.0" prefWidth="200.0" BorderPane.alignment="CENTER">
+            <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" BorderPane.alignment="CENTER">
                <children>
                   <ImageView fx:id="imageView" fitHeight="263.0" fitWidth="421.0" pickOnBounds="true" preserveRatio="true" HBox.hgrow="ALWAYS">
                      <cursor>
@@ -71,6 +71,7 @@
                         <Insets left="40.0" top="80.0" />
                      </HBox.margin>
                   </ImageView>
+                  <Separator orientation="VERTICAL" prefHeight="343.0" prefWidth="0.0" HBox.hgrow="ALWAYS" />
                   <ImageView fx:id="imageView1" fitHeight="263.0" fitWidth="421.0" pickOnBounds="true" preserveRatio="true" HBox.hgrow="ALWAYS">
                      <cursor>
                         <Cursor fx:constant="V_RESIZE" />

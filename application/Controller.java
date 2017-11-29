@@ -46,6 +46,9 @@ public class Controller {
 	
 	private VideoCapture capture;
 	private ScheduledExecutorService timer;
+	
+    private Mat frame = new Mat();
+    private Mat prevFrame = new Mat();
 	@FXML
 	private void initialize() {
 		// Optional: You should modify the logic so that the user can change these values
@@ -76,8 +79,8 @@ public class Controller {
 		    Runnable frameGrabber = new Runnable() {
 		    	@Override
 		        public void run() {
-			        Mat frame = new Mat();
-			        Mat prevFrame = new Mat();
+//			        Mat frame = new Mat();
+//			        Mat prevFrame = new Mat();
 	    			if (play == true && capture.read(frame)) { // decode successfully
 			            double totalFrameCount = capture.get(Videoio.CAP_PROP_FRAME_COUNT);
 //			            System.out.println(totalFrameCount);
@@ -89,35 +92,39 @@ public class Controller {
 		    				Image im = Utilities.mat2Image(STICopy);
 		    				Utilities.onFXThread(imageView.imageProperty(), im); 
 	    				} else if(toggle == false){ //create STI by histogram; when using capture.read(frame), it will read the next frame
-	    					if(i == 0) {
-	    						System.out.println("In initial run, grabbing two initial frames");
-	    						prevFrame = copyHelper(frame);
-	    						if(frame.equals(prevFrame)) {
-	    							System.out.println("copying worked");
-	    						} else {
-	    							System.out.println("copy failed");
-	    						}
-	    						if(capture.read(frame)) {
-	    							System.out.println("found next frame");
-	    						} else {
-	    							System.out.println("read failed");
-	    						}
-//	    						System.out.println(frame.dump());
-//	    						System.out.println(prevFrame.dump());
-//	    						System.out.println("sjdkofjsdklfjdskl");
-	    					}
+//	    					if(i == 0) {
+//	    						prevFrame = copyHelper(frame);
+//	    						if(frame.equals(prevFrame)) {
+//	    							System.out.println("copying worked");
+//	    							System.out.println(frame.col(0).dump());
+//		    						System.out.println(prevFrame.col(0).dump());
+//	    						} else {
+//	    							System.out.println("copy failed");
+//	    						}
+//	    						if(capture.read(frame)) {
+//	    							System.out.println("found next frame");
+//	    						} else {
+//	    							System.out.println("read failed");
+//	    						}
+//	    					}
+	    					capture.read(prevFrame);
+//	    					System.out.println("frame type = " + frame.type());
 //	    					System.out.println("Calculating scalar I");
-	    					Mat column = difMat(frame, prevFrame);
+	    					Mat column = difMat(prevFrame, frame);
+//	    					System.out.println(column.get(0, 0)[0] + " " + column.get(0, 0)[1] + " " + column.get(0, 0)[2]);
+//	    					System.out.println("Copying to STI");
+//	    					System.out.println("STIHist type = " + STIHist.type());
+//	    					System.out.println("column type = " + column.type());
 	    					column.col(0).copyTo(STIHist.col(i));
-	    					i = i+1;
+//	    					System.out.println(STIHist.get(0, 0)[0] + " " + STIHist.get(0, 0)[1] + " " + STIHist.get(0, 0)[2]);
 		    				Image im = Utilities.mat2Image(STIHist);
 		    				Utilities.onFXThread(imageView1.imageProperty(), im);
 //		    				System.out.println("Setting previous frame to frame after processing");
-		    				prevFrame = copyHelper(frame);
-	    				} else {
-	    					System.out.println("Couldn't read next frame");
-	    					System.out.println("i is " + i);
-	    					System.out.println("Total frame count is " + totalFrameCount);
+//		    				if(i != 0) {
+//			    				prevFrame = copyHelper(frame);
+//			    				capture.read(frame);
+//		    				}
+	    					i = i+1;
 	    				}
 	    			} else if (!capture.read(frame)) { // reach the end of the video
 	    				play = false;
@@ -141,9 +148,10 @@ public class Controller {
 	}
 		
 	protected Mat copyHelper(Mat source) {
-//		for(int i=0; i<source.cols(); i++) {
-//			source.col(i).copyTo(destination.col(i));
-//		}
+		Mat destination = new Mat(source.rows(), source.cols(), source.type());
+		for(int i=0; i<source.cols(); i++) {
+			source.col(i).copyTo(destination.col(i));
+		}
 		return source;
 	}
 	
@@ -232,25 +240,34 @@ public class Controller {
 	//The Mat has number of rows = frame's number of columns
 	//and the number of columns = 1
 	protected Mat difMat(Mat prevFrame, Mat currFrame) {
-//		Mat[] prevFrameHist = new Mat[prevFrame.cols()];
-//		Mat[] currFrameHist = new Mat[currFrame.cols()];
+//		if(currFrame.equals(prevFrame)) {
+//			System.out.println("2 frames are the same");
+//		}
 		int cols = currFrame.cols();
 		double[] difHist = new double[cols];
-		Mat result = new Mat(cols, 1, prevFrame.type());
+//		System.out.println("prevFrame type = " + prevFrame.type());
+//		System.out.println("currFrame type = " + currFrame.type());
+		Mat result = new Mat(cols, 1, CvType.CV_8UC3);
+//		System.out.println("Calculating Histograms");
 		for(int i=0; i<cols; i++) {
 //			prevFrameHist[i] = calcHist(prevFrame.col(i));
 //			currFrameHist[i] = calcHist(currFrame.col(i));
 			difHist[i] = difHist(calcHist(prevFrame.col(i)), calcHist(currFrame.col(i)));
 		}
+//		System.out.println("Rescaling colours and placing them into column Mat");
 		for(int i=0; i<cols; i++) {
-			int color = (int) Math.round(difHist[i] * 255);
+			if(difHist[i] < 0.8) {
+				System.out.println("difHist[" + i + "] = " + difHist[i]);
+			}
+			double color = Math.round(difHist[i] * 255);
+//			System.out.println("color = " + color);
 //			double[] pixelColor = {color, color, color};
 			result.put(i, 0, color, color, color);
 		}
 //		System.out.println("result rows = " + result.rows());
 //		System.out.println("result cols = " + result.cols());
 //		System.out.println(result.dump());
-//		double[] color = result.get(0, 0);
+		double[] color = result.get(0, 0);
 //		System.out.println("pixel in result: " + color[0] + " " + color[1] + " " + color[2] + " " );
 		return result;
 	}

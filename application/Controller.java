@@ -5,7 +5,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.imgcodecs.Imgcodecs;
@@ -16,7 +15,6 @@ import org.opencv.imgproc.Imgproc;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
-import javafx.scene.control.Slider;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.stage.FileChooser;
@@ -44,8 +42,6 @@ public class Controller {
 	@FXML
 	Button toggle;
 	
-	@FXML
-	private Slider volumeSlider;
 	
 	private VideoCapture capture;
 	private ScheduledExecutorService timer;

@@ -89,7 +89,6 @@ public class Controller {
 	    			if (play == true) { 
 	    				if (capture.read(frame)) {
 				            double totalFrameCount = capture.get(Videoio.CAP_PROP_FRAME_COUNT);
-	//			            System.out.println(totalFrameCount);
 				            STICopy.create(frame.rows(), (int) totalFrameCount, frame.type());
 				            STIHist.create(frame.cols(), (int) totalFrameCount, frame.type());
 				            STIThre.create(frame.cols(), (int) totalFrameCount, frame.type());
@@ -97,43 +96,25 @@ public class Controller {
 		    				i = i+1;
 		    				Image im = Utilities.mat2Image(STICopy);
 		    				Utilities.onFXThread(imageView.imageProperty(), im); 
-	//    					capture.read(prevFrame);
-	//	    					System.out.println("frame type = " + frame.type());
-//	    					System.out.println("Calculating scalar I");
 		    				if (capture.get(Videoio.CAP_PROP_POS_FRAMES) > 1 && capture.get(Videoio.CAP_PROP_POS_FRAMES) < totalFrameCount) {
+		    					//Calculating Scalar I
 		    					Mat column = difMat(prevFrame, frame);
-//		    					System.out.println("column is first " + column.get(i, 0)[0]);
 		    					Mat threshold = thresh(column);
-//		    					System.out.println("column is now " + column.get(i, 0)[0]);
-//		    					System.out.println("done thresh");
-		//	    				System.out.println(column.get(0, 0)[0] + " " + column.get(0, 0)[1] + " " + column.get(0, 0)[2]);
-//		    					System.out.println("Copying to STI");
-		//	    				System.out.println("STIHist type = " + STIHist.type());
-		//	    				System.out.println("column type = " + column.type());
+		    					//Stitching together the STI
 		    					column.col(0).copyTo(STIHist.col(i));
 		    					threshold.col(0).copyTo(STIThre.col(i));
-		//	    				System.out.println(STIHist.get(0, 0)[0] + " " + STIHist.get(0, 0)[1] + " " + STIHist.get(0, 0)[2]);
 			    				Image im2 = Utilities.mat2Image(STIHist);
 			    				Image im3 = Utilities.mat2Image(STIThre);
 //			    				System.out.println("Putting image on Thread");
 			    				if(togThresh) {
-//			    					System.out.println("togThresh = true");
 			    					Utilities.onFXThread(imageView1.imageProperty(), im2);
 			    				} else {
-//			    					System.out.println("togThresh = false");
 			    					Utilities.onFXThread(imageView1.imageProperty(), im3);
 			    				}
 		    				}
-//		    				System.out.println("i = " + i);
 		    				frame.copyTo(prevFrame);
-	//		    				System.out.println("Setting previous frame to frame after processing");
-	//		    				if(i != 0) {
-	//			    				prevFrame = copyHelper(frame);
-	//			    				capture.read(frame);
-	//		    				}
 		    				}
 	    				else { // reach the end of the video
-//	    					System.out.println("Reached end of video");
 		    				play = false;
 		    				i = 0;
 		    				timer.shutdownNow();
@@ -143,7 +124,6 @@ public class Controller {
 		    };
 			// terminate the timer if it is running 
 			if (timer != null && !timer.isShutdown()) {
-//				System.out.println("Terminating timer");
 				timer.shutdown();
 				timer.awaitTermination(Math.round(1000/framePerSecond), TimeUnit.MILLISECONDS);
 			}
@@ -205,12 +185,9 @@ public class Controller {
 	//calculates the chromaticity of each pixel in the frame then creates and returns a 2D histogram
 	//input should be a mat object with number of columns == 1
 	protected Mat calcHist(Mat mat) {
-//		System.out.println("Inside calcHist");
 		int N = (int) (1 + (Math.log(mat.rows())/Math.log(2)));
 		int sum = 0;
-//		System.out.println("number of bins == " + N);
 		Mat hist = new Mat(N, N, CvType.CV_32F);
-//		System.out.println("N = " + N);
 		for(int i=0; i<N; i++) {
 			for(int j=0; j<N; j++) {
 				hist.put(i, j, 0);
@@ -222,12 +199,9 @@ public class Controller {
 				if(pixel[0] != 0 && pixel[1] != 0 && pixel[2] != 0) { //making sure we don't divide by 0
 					double R = pixel[0]/(pixel[0] + pixel[1] + pixel[2]);
 					double G = pixel[1]/(pixel[0] + pixel[1] + pixel[2]);
-					
 					//dividing pixels into the right bin for histogram
 					int r = (int) Math.floor(R * N);
 					int g = (int) Math.floor(G * N);
-//					System.out.println("r = " + r);
-//					System.out.println("g = " + g);
 					hist.put(r, g, hist.get(r,g)[0] + 1);
 					sum++;
 				} else {
@@ -256,45 +230,17 @@ public class Controller {
 	//The Mat has number of rows = frame's number of columns
 	//and the number of columns = 1
 	protected Mat difMat(Mat prevFrame, Mat currFrame) {
-//		System.out.println("Inside difMat");
-//		if(currFrame.equals(prevFrame)) {
-//			System.out.println("2 frames are the same");
-//		}
 		int cols = currFrame.cols();
 		double[] difHist = new double[cols];
-//		System.out.println("prevFrame type = " + prevFrame.type());
-//		System.out.println("currFrame type = " + currFrame.type());
 		Mat result = new Mat(cols, 1, CvType.CV_8UC3);
-//		System.out.println("Calculating Histograms");
 		for(int i=0; i<cols; i++) {
-//			prevFrameHist[i] = calcHist(prevFrame.col(i));
-//			currFrameHist[i] = calcHist(currFrame.col(i));
-//			double[] prevFrameColor = prevFrame.get(0, 0);
-//			double[] currFrameColor = currFrame.get(0, 0);
-//			System.out.println("pixel in prevFrameColor: " + prevFrameColor[0] + " " + prevFrameColor[1] + " " + prevFrameColor[2] + " " );
-//			System.out.println("pixel in currFrameColor: " + currFrameColor[0] + " " + currFrameColor[1] + " " + currFrameColor[2] + " " );
-			Mat hist1 = calcHist(prevFrame.col(i));
-//			prevFrameColor = hist1.get(0, 0);
-//			System.out.println("pixel in hist1: " + prevFrameColor[0]);
-			Mat hist2 = calcHist(currFrame.col(i));
-//			currFrameColor = hist2.get(0, 0);
-//			System.out.println("pixel in hist2: " + currFrameColor[0]);
 			difHist[i] = difHist(calcHist(prevFrame.col(i)), calcHist(currFrame.col(i)));
-//			System.out.println("difHist[" + i + "] = " + difHist[i]);
 		}
-//		System.out.println("Rescaling colours and placing them into column Mat");
+		//Rescaling colours and placing them into column Mat
 		for(int i=0; i<cols; i++) {
-//			System.out.println("difHist[" + i + "] = " + difHist[i]);
 			double color = Math.round(difHist[i] * 255);
-//			System.out.println("color = " + color);
-//			double[] pixelColor = {color, color, color};
 			result.put(i, 0, color, color, color);
 		}
-//		System.out.println("result rows = " + result.rows());
-//		System.out.println("result cols = " + result.cols());
-//		System.out.println(result.dump());
-		double[] color = result.get(0, 0);
-//		System.out.println("pixel in result: " + color[0] + " " + color[1] + " " + color[2] + " " );
 		return result;
 	}
 	
@@ -303,13 +249,11 @@ public class Controller {
 	protected Mat thresh(Mat column) {
 		Mat result = new Mat(column.rows(), column.cols(), column.type());
 		for(int i=0; i<result.rows(); i++) {
-//			System.out.println("column is first " + result.get(i, 0)[0]);
 			if(column.get(i, 0)[0] > 178) {
 				result.put(i, 0, 255, 255, 255);
 			} else {
 				result.put(i, 0, 0, 0, 0);
 			}
-//			System.out.println("column is now " + result.get(i, 0)[0]);
 		}
 		return result;
 	}
